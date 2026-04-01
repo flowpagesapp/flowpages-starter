@@ -1,15 +1,18 @@
-const fetch = require('node-fetch');
-
 exports.handler = async (event) => {
+  console.log('🚀 Função iniciada');
+  
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Método não permitido' };
   }
 
   try {
     const data = JSON.parse(event.body);
+    console.log('📦 Dados recebidos:', JSON.stringify(data, null, 2));
+    
     const { subdomain, template, content, images } = data;
 
     if (!subdomain || !content?.name) {
+      console.log('❌ Faltam dados');
       return {
         statusCode: 400,
         body: JSON.stringify({ message: 'Faltam dados obrigatórios' })
@@ -19,12 +22,15 @@ exports.handler = async (event) => {
     const githubToken = process.env.GITHUB_TOKEN;
     const netlifyToken = process.env.NETLIFY_TOKEN;
     const githubUser = process.env.GITHUB_USERNAME;
-    
-    const templateRepo = template === 'beleza' 
-      ? process.env.FLOWPAGES_BROW 
-      : process.env.TEMPLATE_FOTOGRAFO;
+    const templateRepo = process.env.FLOWPAGES_BROW;
+
+    console.log('🔑 GitHub User:', githubUser);
+    console.log('📁 Template Repo:', templateRepo);
+    console.log('🔐 GitHub Token existe?', githubToken ? 'Sim' : 'Não');
+    console.log('🔐 Netlify Token existe?', netlifyToken ? 'Sim' : 'Não');
 
     if (!githubToken || !netlifyToken || !templateRepo) {
+      console.log('❌ Tokens faltando');
       return {
         statusCode: 500,
         body: JSON.stringify({ message: 'Tokens ou template não configurados' })
@@ -32,8 +38,10 @@ exports.handler = async (event) => {
     }
 
     const repoName = `site-${subdomain}`;
+    console.log('📝 Nome do repositório:', repoName);
 
-    // 1. Criar repositório a partir do template
+    // Criar repositório
+    console.log('🔄 Criando repositório no GitHub...');
     const criarRepo = await fetch(
       `https://api.github.com/repos/${githubUser}/${templateRepo}/generate`,
       {
@@ -51,12 +59,18 @@ exports.handler = async (event) => {
       }
     );
 
+    console.log('📡 GitHub response status:', criarRepo.status);
+
     if (!criarRepo.ok) {
       const erro = await criarRepo.text();
+      console.log('❌ Erro GitHub:', erro);
       throw new Error(`Erro ao criar repositório: ${erro}`);
     }
 
-    // 2. Fazer deploy na Netlify
+    console.log('✅ Repositório criado com sucesso');
+
+    // Deploy na Netlify
+    console.log('🚀 Fazendo deploy na Netlify...');
     const deploy = await fetch('https://api.netlify.com/api/v1/sites', {
       method: 'POST',
       headers: {
@@ -74,12 +88,16 @@ exports.handler = async (event) => {
       }),
     });
 
+    console.log('📡 Netlify response status:', deploy.status);
+
     if (!deploy.ok) {
       const erro = await deploy.text();
+      console.log('❌ Erro Netlify:', erro);
       throw new Error(`Erro ao fazer deploy: ${erro}`);
     }
 
     const deployData = await deploy.json();
+    console.log('✅ Deploy concluído!');
 
     return {
       statusCode: 200,
@@ -91,7 +109,8 @@ exports.handler = async (event) => {
     };
 
   } catch (erro) {
-    console.error('Erro:', erro);
+    console.error('❌ ERRO GERAL:', erro);
+    console.error('Stack:', erro.stack);
     return {
       statusCode: 500,
       body: JSON.stringify({ message: erro.message }),
