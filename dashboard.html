@@ -1,0 +1,899 @@
+<!doctype html>
+
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crie seu site • Plataforma para Fotógrafos e Beleza</title>
+  <meta name="description" content="Plataforma para fotógrafos e profissionais da beleza criarem seus sites com Netlify Identity." />  <script src="https://cdn.tailwindcss.com"></script>  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>  <style>
+    :root {
+      --bg: #f8f6f2;
+      --panel: rgba(255, 255, 255, 0.85);
+      --panel-strong: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: rgba(31, 41, 55, 0.08);
+      --orange: #f4a261;
+      --orange-dark: #ea8f42;
+      --brown: #8b5a2b;
+      --good: #2f9e44;
+      --bad: #d64545;
+      --shadow: 0 18px 50px rgba(139, 90, 43, 0.10);
+    }
+
+    html, body {
+      background:
+        radial-gradient(circle at top left, rgba(244,162,97,.12), transparent 24%),
+        radial-gradient(circle at bottom right, rgba(139,90,43,.08), transparent 28%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    .glass {
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .soft-input:focus {
+      outline: none;
+      border-color: rgba(244, 162, 97, .55);
+      box-shadow: 0 0 0 4px rgba(244, 162, 97, .15);
+    }
+
+    .template-card.selected {
+      border-color: rgba(244, 162, 97, .9);
+      box-shadow: 0 12px 35px rgba(244, 162, 97, .16);
+      transform: translateY(-2px);
+    }
+
+    .thumb-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+      gap: 10px;
+    }
+
+    .thumb {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      box-shadow: 0 8px 20px rgba(31,41,55,.06);
+    }
+
+    .fade-up {
+      animation: fadeUp .6s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .pulse-dot {
+      width: 10px; height: 10px; border-radius: 999px; background: var(--orange);
+      box-shadow: 0 0 0 rgba(244,162,97, .45);
+      animation: pulse 1.8s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(244,162,97,.35); }
+      70% { box-shadow: 0 0 0 12px rgba(244,162,97,0); }
+      100% { box-shadow: 0 0 0 0 rgba(244,162,97,0); }
+    }
+
+    .loading-spinner {
+      border: 3px solid rgba(255,255,255,.55);
+      border-top-color: rgba(139,90,43,.95);
+      border-radius: 999px;
+      width: 22px;
+      height: 22px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .modal-backdrop {
+      background: rgba(17, 24, 39, 0.55);
+      backdrop-filter: blur(4px);
+    }
+  </style></head>
+<body class="min-h-screen text-slate-800" x-data="siteBuilder()" x-init="init()">
+  <div class="min-h-screen flex flex-col">
+    <header class="sticky top-0 z-30 border-b border-white/60 bg-white/70 backdrop-blur-xl">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4 min-w-0">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#f4a261] to-[#8b5a2b] text-white grid place-items-center shadow-lg">
+            <span class="text-2xl">✦</span>
+          </div>
+          <div class="min-w-0">
+            <h1 class="text-lg sm:text-xl font-black text-[#8b5a2b] truncate">Plataforma de Sites</h1>
+            <p class="text-xs sm:text-sm text-slate-500 truncate">Fotógrafos e profissionais da beleza</p>
+          </div>
+        </div><div class="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+      <template x-if="!authReady">
+        <div class="flex items-center gap-2 text-sm text-slate-500">
+          <div class="loading-spinner"></div>
+          <span>Conectando identidade...</span>
+        </div>
+      </template>
+
+      <template x-if="authReady && !user">
+        <div class="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+          <button @click="openIdentity('login')" class="rounded-2xl px-4 py-2.5 bg-white border border-slate-200 hover:border-[#f4a261] hover:text-[#8b5a2b] transition font-semibold">Entrar</button>
+          <button @click="openIdentity('signup')" class="rounded-2xl px-4 py-2.5 bg-[#f4a261] hover:bg-[#ea8f42] text-white transition font-bold shadow-md shadow-[#f4a261]/20">Cadastrar</button>
+        </div>
+      </template>
+
+      <template x-if="authReady && user">
+        <div class="flex items-center gap-2 sm:gap-3">
+          <div class="hidden sm:flex items-center gap-2 rounded-2xl bg-white border border-slate-200 px-4 py-2">
+            <span class="pulse-dot"></span>
+            <span class="text-sm font-medium text-slate-700 truncate max-w-[210px]" x-text="userDisplayName"></span>
+          </div>
+          <button @click="logout()" class="rounded-2xl px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 transition font-semibold text-slate-700">Sair</button>
+        </div>
+      </template>
+    </div>
+  </div>
+</header>
+
+<main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10">
+  <template x-if="!authReady">
+    <section class="glass rounded-[2rem] p-8 sm:p-10 fade-up">
+      <h2 class="text-2xl font-black text-[#8b5a2b]">Preparando sua área...</h2>
+      <p class="mt-3 text-slate-600">Só um instante enquanto a sessão é carregada. O browser às vezes é meio dramático, então a gente trata com carinho.</p>
+    </section>
+  </template>
+
+  <template x-if="authReady && !user">
+    <section class="glass rounded-[2rem] p-8 sm:p-10 text-center fade-up">
+      <div class="mx-auto w-20 h-20 rounded-[2rem] bg-white border border-slate-200 grid place-items-center text-4xl shadow-sm">✿</div>
+      <h2 class="mt-5 text-3xl sm:text-4xl font-black text-[#8b5a2b]">Faça login para criar seu site</h2>
+      <p class="mt-3 text-slate-600 max-w-2xl mx-auto">Entre ou cadastre-se para acessar o formulário de criação, escolher template, subdomínio e publicar seu site.</p>
+
+      <div class="mt-8 flex flex-col sm:flex-row justify-center gap-3">
+        <button @click="openIdentity('login')" class="rounded-2xl px-5 py-3.5 bg-[#f4a261] hover:bg-[#ea8f42] text-white font-bold shadow-md shadow-[#f4a261]/20 transition">Entrar</button>
+        <button @click="openIdentity('signup')" class="rounded-2xl px-5 py-3.5 bg-white border border-slate-200 hover:border-[#f4a261] transition font-semibold text-slate-700">Cadastrar</button>
+      </div>
+    </section>
+  </template>
+
+  <template x-if="authReady && user">
+    <div class="grid lg:grid-cols-[1.2fr_.8fr] gap-6 items-start fade-up">
+      <!-- Left column -->
+      <section class="glass rounded-[2rem] p-6 sm:p-8">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+          <div>
+            <h2 class="text-3xl sm:text-4xl font-black text-[#8b5a2b]">Crie o site do seu cliente</h2>
+            <p class="mt-2 text-slate-600 max-w-2xl">Tudo fica salvo automaticamente enquanto você preenche. Troque só o que quiser, o resto fica quietinho no localStorage, como um funcionário que finalmente aprendeu a não sumir.</p>
+          </div>
+          <div class="text-sm text-slate-500">
+            Logado como
+            <div class="font-semibold text-[#8b5a2b]" x-text="userDisplayName"></div>
+          </div>
+        </div>
+
+        <div class="space-y-8">
+          <!-- Subdomain -->
+          <section class="rounded-[1.6rem] border border-slate-200 bg-white p-5">
+            <div class="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <h3 class="text-xl font-extrabold text-[#8b5a2b]">Escolha do subdomínio</h3>
+                <p class="text-sm text-slate-500 mt-1">Use apenas letras minúsculas, números e hífen. Mínimo de 3 caracteres.</p>
+              </div>
+              <div class="text-sm rounded-2xl bg-[#fdf3e8] px-4 py-2 text-[#8b5a2b] border border-[#f4a261]/20">
+                <span class="font-semibold">Prévia:</span> <span x-text="subdomainPreview"></span>
+              </div>
+            </div>
+
+            <div class="mt-4 grid md:grid-cols-[1fr_auto] gap-3 items-start">
+              <div>
+                <label class="text-sm font-medium text-slate-600">Subdomínio</label>
+                <input
+                  type="text"
+                  class="soft-input mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-800 placeholder:text-slate-400"
+                  placeholder="ex: mariafoto, beleza-luxo"
+                  x-model="form.subdomain"
+                  @input="onSubdomainInput()"
+                  aria-label="Subdomínio desejado"
+                />
+                <p class="mt-2 text-xs text-slate-500">
+                  Seu site ficará em <span class="font-semibold text-[#8b5a2b]" x-text="subdomainPreview"></span>
+                </p>
+              </div>
+              <div class="md:self-end">
+                <button @click="checkAvailability()" class="rounded-2xl px-5 py-3.5 bg-white border border-slate-200 hover:border-[#f4a261] hover:text-[#8b5a2b] transition font-semibold w-full md:w-auto">Verificar disponibilidade</button>
+              </div>
+            </div>
+
+            <div class="mt-3 text-sm" :class="availabilityState === 'available' ? 'text-green-600' : availabilityState === 'taken' ? 'text-red-600' : 'text-slate-500'" x-text="availabilityMessage"></div>
+          </section>
+
+          <!-- Templates -->
+          <section class="rounded-[1.6rem] border border-slate-200 bg-white p-5">
+            <h3 class="text-xl font-extrabold text-[#8b5a2b]">Escolha um template</h3>
+            <p class="text-sm text-slate-500 mt-1">Clique em uma opção para selecionar o estilo do site.</p>
+
+            <div class="mt-4 grid md:grid-cols-3 gap-4">
+              <template x-for="template in templates" :key="template.id">
+                <button
+                  type="button"
+                  @click="selectTemplate(template.id)"
+                  class="template-card text-left rounded-[1.6rem] border border-slate-200 bg-white overflow-hidden transition hover:shadow-lg"
+                  :class="selectedTemplate === template.id ? 'selected' : ''"
+                  :aria-pressed="selectedTemplate === template.id"
+                >
+                  <div class="h-36 bg-cover bg-center" :style="`background-image:url('${template.image}')`"></div>
+                  <div class="p-4">
+                    <div class="flex items-center justify-between gap-2">
+                      <h4 class="font-extrabold text-[#8b5a2b]" x-text="template.name"></h4>
+                      <span class="text-xs rounded-full px-2 py-1 border border-slate-200 text-slate-500" x-text="template.tag"></span>
+                    </div>
+                    <p class="mt-2 text-sm text-slate-500" x-text="template.description"></p>
+                  </div>
+                </button>
+              </template>
+            </div>
+          </section>
+
+          <!-- Content form -->
+          <section class="rounded-[1.6rem] border border-slate-200 bg-white p-5">
+            <h3 class="text-xl font-extrabold text-[#8b5a2b]">Conteúdo do site</h3>
+            <p class="text-sm text-slate-500 mt-1">Preencha os dados do profissional. Os campos obrigatórios são marcados e o formulário é salvo automaticamente.</p>
+
+            <div class="mt-5 grid gap-4">
+              <div>
+                <label class="text-sm font-medium text-slate-600">Nome do profissional *</label>
+                <input type="text" x-model="form.name" @input="saveDraft()" class="soft-input mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="Ex: Laura Martins" />
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                  <label class="text-sm font-medium text-slate-600">Biografia *</label>
+                  <span class="text-xs text-slate-500" x-text="`${bioLength}/300 caracteres`"></span>
+                </div>
+                <textarea x-model="form.bio" @input="bioLimit(); saveDraft()" maxlength="300" rows="5" class="soft-input mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 resize-none" placeholder="Escreva uma biografia curta e profissional..."></textarea>
+              </div>
+
+              <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label class="text-sm font-medium text-slate-600">Instagram *</label>
+                  <input type="text" x-model="form.instagram" @input="saveDraft()" class="soft-input mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="@seudperfil" />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-600">WhatsApp *</label>
+                  <input type="text" x-model="form.whatsapp" @input="saveDraft()" class="soft-input mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="(88) 9xxxx-xxxx" />
+                </div>
+              </div>
+
+              <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label class="text-sm font-medium text-slate-600">Foto de perfil (1 imagem, até 2MB) *</label>
+                  <input type="file" accept="image/*" @change="handleProfileUpload($event)" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3" />
+                  <template x-if="profilePreview">
+                    <img :src="profilePreview" alt="Prévia da foto de perfil" class="mt-3 w-28 h-28 rounded-3xl object-cover border border-slate-200 shadow-sm" />
+                  </template>
+                </div>
+
+                <div>
+                  <label class="text-sm font-medium text-slate-600">Galeria de fotos (3 a 10 imagens, até 2MB cada) *</label>
+                  <input type="file" accept="image/*" multiple @change="handleGalleryUpload($event)" class="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3" />
+                  <p class="mt-2 text-xs text-slate-500">Escolha entre 3 e 10 imagens. As miniaturas aparecem abaixo.</p>
+                  <div class="thumb-grid mt-3">
+                    <template x-for="(img, index) in galleryPreviews" :key="index">
+                      <img :src="img" alt="Miniatura da galeria" class="thumb" />
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- Right column -->
+      <aside class="glass rounded-[2rem] p-6 sm:p-8 h-fit sticky top-24">
+        <h3 class="text-2xl font-black text-[#8b5a2b]">Resumo</h3>
+        <p class="mt-2 text-sm text-slate-600">Veja um resumo do que será enviado para a API e publique quando estiver tudo certo.</p>
+
+        <div class="mt-5 space-y-4">
+          <div class="rounded-2xl border border-slate-200 bg-white p-4">
+            <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Subdomínio</div>
+            <div class="mt-1 font-bold text-[#8b5a2b]" x-text="subdomainPreview"></div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-white p-4">
+            <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Template</div>
+            <div class="mt-1 font-bold text-[#8b5a2b]" x-text="selectedTemplateName || 'Selecione um template'"></div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-white p-4">
+            <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Status</div>
+            <div class="mt-1 font-bold" :class="isReadyToPublish ? 'text-green-600' : 'text-amber-600'" x-text="isReadyToPublish ? 'Pronto para publicar' : 'Ainda faltam dados' "></div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-white p-4">
+            <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Prévia de validação</div>
+            <ul class="mt-2 space-y-2 text-sm text-slate-600">
+              <li :class="validations.subdomain ? 'text-green-600' : 'text-slate-500'">• Subdomínio válido</li>
+              <li :class="validations.template ? 'text-green-600' : 'text-slate-500'">• Template selecionado</li>
+              <li :class="validations.profile ? 'text-green-600' : 'text-slate-500'">• Foto de perfil</li>
+              <li :class="validations.gallery ? 'text-green-600' : 'text-slate-500'">• Galeria com mínimo de 3 fotos</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="mt-6 flex flex-col gap-3">
+          <button @click="openConfirmModal()" class="rounded-2xl bg-[#f4a261] hover:bg-[#ea8f42] text-white font-bold py-3.5 shadow-md shadow-[#f4a261]/20 transition">Publicar</button>
+          <button @click="clearAll()" class="rounded-2xl bg-white border border-slate-200 hover:border-[#f4a261] font-semibold py-3.5 transition">Limpar tudo</button>
+        </div>
+
+        <template x-if="message.text">
+          <div class="mt-5 rounded-2xl p-4 text-sm" :class="message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-amber-50 text-amber-700 border border-amber-200'">
+            <span x-text="message.text"></span>
+          </div>
+        </template>
+      </aside>
+    </div>
+  </template>
+</main>
+
+  </div>  <!-- Confirmation modal -->  <div x-show="showConfirm" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="glass w-full max-w-3xl rounded-[2rem] p-6 sm:p-8">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h3 id="confirmTitle" class="text-2xl font-black text-[#8b5a2b]">Confirmar publicação</h3>
+          <p class="mt-2 text-sm text-slate-600">Confira os dados antes de enviar para a API.</p>
+        </div>
+        <button @click="showConfirm=false" class="rounded-2xl bg-white border border-slate-200 px-4 py-2 font-semibold">Fechar</button>
+      </div><div class="mt-5 grid md:grid-cols-2 gap-4">
+    <div class="rounded-2xl bg-white border border-slate-200 p-4">
+      <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Dados principais</div>
+      <div class="mt-3 space-y-2 text-sm">
+        <p><strong>Profissional:</strong> <span x-text="form.name || '-' "></span></p>
+        <p><strong>Subdomínio:</strong> <span x-text="subdomainPreview"></span></p>
+        <p><strong>Template:</strong> <span x-text="selectedTemplateName || '-' "></span></p>
+        <p><strong>Instagram:</strong> <span x-text="form.instagram || '-' "></span></p>
+        <p><strong>WhatsApp:</strong> <span x-text="form.whatsapp || '-' "></span></p>
+      </div>
+    </div>
+    <div class="rounded-2xl bg-white border border-slate-200 p-4">
+      <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Biografia</div>
+      <p class="mt-3 text-sm text-slate-700 leading-6" x-text="form.bio || '-' "></p>
+      <div class="mt-4 text-xs text-slate-500">Galeria: <span x-text="galleryPreviews.length"></span> imagem(ns)</div>
+    </div>
+  </div>
+
+  <div class="mt-6 flex flex-col sm:flex-row justify-end gap-3">
+    <button @click="showConfirm=false" class="rounded-2xl bg-white border border-slate-200 hover:border-[#f4a261] font-semibold px-5 py-3.5 transition">Voltar</button>
+    <button @click="publish()" class="rounded-2xl bg-[#f4a261] hover:bg-[#ea8f42] text-white font-bold px-5 py-3.5 shadow-md shadow-[#f4a261]/20 transition">Confirmar e publicar</button>
+  </div>
+</div>
+
+  </div>  <!-- Processing modal -->  <div x-show="showProcessing" x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4 modal-backdrop" role="status" aria-live="polite">
+    <div class="glass w-full max-w-md rounded-[2rem] p-8 text-center">
+      <div class="mx-auto w-16 h-16 rounded-full bg-white border border-slate-200 grid place-items-center shadow-sm">
+        <div class="loading-spinner"></div>
+      </div>
+      <h3 class="mt-5 text-2xl font-black text-[#8b5a2b]">Processando...</h3>
+      <p class="mt-2 text-slate-600">Estamos enviando os dados para a API.</p>
+    </div>
+  </div>  <template id="templateSubmitSuccess">
+    <div class="rounded-3xl border border-green-200 bg-green-50 p-5 text-green-800">
+      <h4 class="font-black text-lg">Sucesso!</h4>
+      <p class="mt-2 text-sm">Seu site foi enviado com sucesso.</p>
+      <div class="mt-3 text-sm space-y-1">
+        <p><strong>Site:</strong> <span class="success-site"></span></p>
+        <p><strong>Painel:</strong> <span class="success-panel"></span></p>
+      </div>
+    </div>
+  </template>  <script>
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('siteBuilder', () => ({
+        // Netlify Identity
+        authReady: false,
+        user: null,
+        userDisplayName: '',
+        identityError: '',
+
+        // Form state
+        storageKey: 'site_builder_draft_v1',
+        form: {
+          subdomain: '',
+          name: '',
+          bio: '',
+          instagram: '',
+          whatsapp: '',
+          profileImage: '',
+          galleryImages: []
+        },
+
+        templates: [
+          {
+            id: 'classic',
+            name: 'Clássico',
+            tag: 'elegante',
+            image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1200&auto=format&fit=crop',
+            description: 'Layout mais tradicional, ideal para fotógrafos e estúdios com presença premium.'
+          },
+          {
+            id: 'modern',
+            name: 'Moderno',
+            tag: 'versátil',
+            image: 'https://images.unsplash.com/photo-1514996937319-344454492b37?q=80&w=1200&auto=format&fit=crop',
+            description: 'Visual atual, com foco em conversão, botões fortes e ritmo visual mais dinâmico.'
+          },
+          {
+            id: 'minimal',
+            name: 'Minimalista',
+            tag: 'clean',
+            image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=1200&auto=format&fit=crop',
+            description: 'Poucos elementos, leitura rápida e foco total no conteúdo do profissional.'
+          }
+        ],
+
+        selectedTemplate: '',
+        availabilityState: 'idle',
+        availabilityMessage: 'Digite um subdomínio para verificar.',
+        message: { type: '', text: '' },
+        showConfirm: false,
+        showProcessing: false,
+        profilePreview: '',
+        galleryPreviews: [],
+        profileFileData: null,
+        galleryFileData: [],
+        validations: {
+          subdomain: false,
+          template: false,
+          profile: false,
+          gallery: false
+        },
+        debounceTimer: null,
+
+        init() {
+          this.restoreDraft();
+          this.setupIdentity();
+          this.setupLeaveGuard();
+          this.updateValidationState();
+          this.updateUserDisplay();
+        },
+
+        setupIdentity() {
+          try {
+            if (!window.netlifyIdentity) {
+              this.identityError = 'Não foi possível carregar a autenticação da Netlify.';
+              this.message = { type: 'error', text: this.identityError };
+              this.authReady = true;
+              return;
+            }
+
+            window.netlifyIdentity.on('init', (user) => {
+              this.user = user || null;
+              this.authReady = true;
+              this.updateUserDisplay();
+            });
+
+            window.netlifyIdentity.on('login', (user) => {
+              this.user = user;
+              this.authReady = true;
+              this.updateUserDisplay();
+              this.message = { type: 'success', text: 'Login realizado com sucesso.' };
+            });
+
+            window.netlifyIdentity.on('logout', () => {
+              this.user = null;
+              this.updateUserDisplay();
+              this.message = { type: 'success', text: 'Você saiu da conta.' };
+            });
+
+            window.netlifyIdentity.on('error', (err) => {
+              this.identityError = err?.message || 'Falha ao conectar com a autenticação.';
+              this.message = { type: 'error', text: 'A autenticação da Netlify falhou. Tente novamente.' };
+              this.authReady = true;
+            });
+
+            // Open and keep session alive if already logged in.
+            window.netlifyIdentity.init();
+            const current = window.netlifyIdentity.currentUser();
+            if (current) {
+              this.user = current;
+              this.authReady = true;
+              this.updateUserDisplay();
+            }
+          } catch (err) {
+            this.identityError = err?.message || 'Erro ao iniciar autenticação.';
+            this.message = { type: 'error', text: 'Não consegui iniciar o login da Netlify.' };
+            this.authReady = true;
+          }
+        },
+
+        setupLeaveGuard() {
+          window.addEventListener('beforeunload', () => this.saveDraft());
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') this.saveDraft();
+          });
+        },
+
+        updateUserDisplay() {
+          const user = this.user;
+          if (!user) {
+            this.userDisplayName = '';
+            return;
+          }
+
+          this.userDisplayName = user?.user_metadata?.full_name
+            || user?.user_metadata?.name
+            || user?.email
+            || 'Usuário';
+        },
+
+        openIdentity(mode) {
+          try {
+            if (!window.netlifyIdentity) {
+              this.message = { type: 'error', text: 'Autenticação indisponível no momento.' };
+              return;
+            }
+            window.netlifyIdentity.open(mode);
+          } catch (err) {
+            this.message = { type: 'error', text: 'Não foi possível abrir o login da Netlify.' };
+          }
+        },
+
+        async logout() {
+          try {
+            await window.netlifyIdentity.logout();
+          } catch (err) {
+            this.message = { type: 'error', text: 'Não foi possível sair da conta.' };
+          }
+        },
+
+        get subdomainPreview() {
+          const sub = (this.form.subdomain || 'seu-site').toLowerCase();
+          return `${sub}.suaplataforma.com`;
+        },
+
+        get selectedTemplateName() {
+          const tpl = this.templates.find(t => t.id === this.selectedTemplate);
+          return tpl ? tpl.name : '';
+        },
+
+        get bioLength() {
+          return (this.form.bio || '').length;
+        },
+
+        get isReadyToPublish() {
+          return !!(
+            this.user &&
+            this.validations.subdomain &&
+            this.validations.template &&
+            this.validations.profile &&
+            this.validations.gallery &&
+            this.form.name &&
+            this.form.bio &&
+            this.form.instagram &&
+            this.form.whatsapp
+          );
+        },
+
+        updateValidationState() {
+          this.validations.subdomain = this.isValidSubdomain(this.form.subdomain);
+          this.validations.template = !!this.selectedTemplate;
+          this.validations.profile = !!this.profileFileData;
+          this.validations.gallery = Array.isArray(this.galleryFileData) && this.galleryFileData.length >= 3;
+        },
+
+        isValidSubdomain(value) {
+          const v = (value || '').trim();
+          return /^[a-z0-9-]{3,}$/.test(v) && !v.includes('--') && !v.startsWith('-') && !v.endsWith('-');
+        },
+
+        sanitizeSubdomain(value) {
+          return (value || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9-]/g, '')
+            .replace(/-+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
+        },
+
+        onSubdomainInput() {
+          this.form.subdomain = this.sanitizeSubdomain(this.form.subdomain);
+          this.updateValidationState();
+          this.saveDraft();
+
+          clearTimeout(this.debounceTimer);
+          this.debounceTimer = setTimeout(() => {
+            if (!this.form.subdomain) {
+              this.availabilityState = 'idle';
+              this.availabilityMessage = 'Digite um subdomínio para verificar.';
+              return;
+            }
+            if (!this.isValidSubdomain(this.form.subdomain)) {
+              this.availabilityState = 'invalid';
+              this.availabilityMessage = 'Subdomínio inválido. Use apenas minúsculas, números e hífen.';
+              return;
+            }
+            this.availabilityState = 'idle';
+            this.availabilityMessage = 'Clique em “Verificar disponibilidade” para consultar.';
+          }, 150);
+        },
+
+        async checkAvailability() {
+          if (!this.isValidSubdomain(this.form.subdomain)) {
+            this.availabilityState = 'invalid';
+            this.availabilityMessage = 'Subdomínio inválido. Ajuste antes de verificar.';
+            return;
+          }
+
+          this.availabilityState = 'checking';
+          this.availabilityMessage = 'Verificando disponibilidade...';
+
+          // Simulação de consulta à API futura.
+          await new Promise(resolve => setTimeout(resolve, 1200));
+
+          const taken = ['studio', 'photo', 'beleza', 'admin', 'home'];
+          if (taken.includes(this.form.subdomain)) {
+            this.availabilityState = 'taken';
+            this.availabilityMessage = 'Esse subdomínio já está em uso. Tente outro.';
+          } else {
+            this.availabilityState = 'available';
+            this.availabilityMessage = 'Subdomínio disponível!';
+          }
+          this.saveDraft();
+        },
+
+        selectTemplate(id) {
+          this.selectedTemplate = id;
+          this.updateValidationState();
+          this.saveDraft();
+        },
+
+        bioLimit() {
+          if ((this.form.bio || '').length > 300) {
+            this.form.bio = this.form.bio.slice(0, 300);
+          }
+          this.updateValidationState();
+        },
+
+        handleProfileUpload(event) {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          if (!file.type.startsWith('image/')) {
+            this.message = { type: 'error', text: 'A foto de perfil precisa ser uma imagem.' };
+            return;
+          }
+          if (file.size > 2 * 1024 * 1024) {
+            this.message = { type: 'error', text: 'Foto de perfil acima de 2MB.' };
+            return;
+          }
+
+          this.fileToBase64(file).then(base64 => {
+            this.profileFileData = { name: file.name, type: file.type, size: file.size, base64 };
+            this.profilePreview = base64;
+            this.updateValidationState();
+            this.saveDraft();
+          });
+        },
+
+        handleGalleryUpload(event) {
+          const files = Array.from(event.target.files || []);
+          if (files.length < 3) {
+            this.message = { type: 'error', text: 'Envie pelo menos 3 imagens para a galeria.' };
+            return;
+          }
+          if (files.length > 10) {
+            this.message = { type: 'error', text: 'A galeria aceita no máximo 10 imagens.' };
+            return;
+          }
+
+          const validFiles = files.filter(file => file.type.startsWith('image/'));
+          if (validFiles.length !== files.length) {
+            this.message = { type: 'error', text: 'A galeria aceita apenas imagens.' };
+            return;
+          }
+          if (validFiles.some(file => file.size > 2 * 1024 * 1024)) {
+            this.message = { type: 'error', text: 'Uma ou mais imagens da galeria ultrapassam 2MB.' };
+            return;
+          }
+
+          Promise.all(validFiles.map(file => this.fileToBase64(file).then(base64 => ({
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            base64
+          })))).then(result => {
+            this.galleryFileData = result;
+            this.galleryPreviews = result.map(item => item.base64);
+            this.updateValidationState();
+            this.saveDraft();
+          });
+        },
+
+        fileToBase64(file) {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        },
+
+        saveDraft() {
+          const draft = {
+            form: this.form,
+            selectedTemplate: this.selectedTemplate,
+            availabilityState: this.availabilityState,
+            availabilityMessage: this.availabilityMessage,
+            profilePreview: this.profilePreview,
+            galleryPreviews: this.galleryPreviews,
+            profileFileData: this.profileFileData,
+            galleryFileData: this.galleryFileData
+          };
+          try {
+            localStorage.setItem(this.storageKey, JSON.stringify(draft));
+          } catch (err) {
+            // Se o localStorage falhar, o navegador está sendo inconveniente.
+          }
+        },
+
+        restoreDraft() {
+          try {
+            const raw = localStorage.getItem(this.storageKey);
+            if (!raw) {
+              this.authReady = false;
+              return;
+            }
+            const draft = JSON.parse(raw);
+            if (draft?.form) this.form = { ...this.form, ...draft.form };
+            this.selectedTemplate = draft?.selectedTemplate || '';
+            this.availabilityState = draft?.availabilityState || 'idle';
+            this.availabilityMessage = draft?.availabilityMessage || 'Digite um subdomínio para verificar.';
+            this.profilePreview = draft?.profilePreview || '';
+            this.galleryPreviews = draft?.galleryPreviews || [];
+            this.profileFileData = draft?.profileFileData || null;
+            this.galleryFileData = draft?.galleryFileData || [];
+          } catch (err) {
+            // falha silenciosa
+          }
+        },
+
+        clearAll() {
+          if (!confirm('Tem certeza que deseja limpar tudo?')) return;
+          this.form = {
+            subdomain: '',
+            name: '',
+            bio: '',
+            instagram: '',
+            whatsapp: '',
+            profileImage: '',
+            galleryImages: []
+          };
+          this.selectedTemplate = '';
+          this.availabilityState = 'idle';
+          this.availabilityMessage = 'Digite um subdomínio para verificar.';
+          this.profilePreview = '';
+          this.galleryPreviews = [];
+          this.profileFileData = null;
+          this.galleryFileData = [];
+          this.message = { type: '', text: '' };
+          localStorage.removeItem(this.storageKey);
+          this.updateValidationState();
+        },
+
+        openConfirmModal() {
+          this.updateValidationState();
+          if (!this.user) {
+            this.message = { type: 'error', text: 'Faça login para criar seu site.' };
+            return;
+          }
+          if (!this.form.name || !this.form.bio || !this.form.instagram || !this.form.whatsapp) {
+            this.message = { type: 'error', text: 'Preencha todos os campos obrigatórios antes de publicar.' };
+            return;
+          }
+          if (!this.validations.subdomain) {
+            this.message = { type: 'error', text: 'Subdomínio inválido.' };
+            return;
+          }
+          if (!this.validations.template) {
+            this.message = { type: 'error', text: 'Selecione um template.' };
+            return;
+          }
+          if (!this.validations.profile) {
+            this.message = { type: 'error', text: 'Envie uma foto de perfil.' };
+            return;
+          }
+          if (!this.validations.gallery) {
+            this.message = { type: 'error', text: 'Envie pelo menos 3 imagens para a galeria.' };
+            return;
+          }
+          this.showConfirm = true;
+        },
+
+        async publish() {
+          this.showConfirm = false;
+          this.showProcessing = true;
+          this.message = { type: 'info', text: 'Processando...' };
+
+          const payload = {
+            authUser: {
+              id: this.user?.id || null,
+              email: this.user?.email || null,
+              name: this.user?.user_metadata?.full_name || this.user?.user_metadata?.name || null
+            },
+            subdomain: this.form.subdomain,
+            template: this.selectedTemplate,
+            content: {
+              name: this.form.name,
+              bio: this.form.bio,
+              instagram: this.form.instagram,
+              whatsapp: this.form.whatsapp
+            },
+            images: {
+              profile: this.profileFileData,
+              gallery: this.galleryFileData
+            },
+            previewUrl: `https://${this.form.subdomain}.suaplataforma.com`,
+            dashboardUrl: `https://suaplataforma.com/painel/${this.form.subdomain}`,
+            createdAt: new Date().toISOString()
+          };
+
+          try {
+            const response = await fetch('/.netlify/functions/create-site', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+              let serverMessage = 'Não foi possível publicar agora.';
+              try {
+                const data = await response.json();
+                serverMessage = data?.message || serverMessage;
+              } catch (e) {}
+              throw new Error(serverMessage);
+            }
+
+            let result = {};
+            try {
+              result = await response.json();
+            } catch (e) {}
+
+            const siteUrl = result.siteUrl || payload.previewUrl;
+            const dashboardUrl = result.dashboardUrl || payload.dashboardUrl;
+            this.showProcessing = false;
+
+            this.message = {
+              type: 'success',
+              text: 'Site publicado com sucesso.'
+            };
+
+            // Mostra um bloco de sucesso com links.
+            this.renderSuccess(siteUrl, dashboardUrl);
+            localStorage.removeItem(this.storageKey);
+          } catch (err) {
+            this.showProcessing = false;
+            this.message = {
+              type: 'error',
+              text: err?.message || 'Erro ao publicar o site.'
+            };
+          }
+        },
+
+        renderSuccess(siteUrl, dashboardUrl) {
+          const container = document.createElement('div');
+          const tpl = document.getElementById('templateSubmitSuccess').content.cloneNode(true);
+          tpl.querySelector('.success-site').textContent = siteUrl;
+          tpl.querySelector('.success-panel').textContent = dashboardUrl;
+          container.appendChild(tpl);
+          this.message = { type: 'success', text: 'Seu site foi enviado com sucesso.' };
+
+          // Mostra na lateral e também um alert amigável.
+          setTimeout(() => {
+            alert(`Sucesso!\n\nSite: ${siteUrl}\nPainel: ${dashboardUrl}`);
+          }, 120);
+        }
+      }))
+    })
+  </script></body>
+</html>
