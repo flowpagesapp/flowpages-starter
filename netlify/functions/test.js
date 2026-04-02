@@ -1,14 +1,19 @@
-exports.handler = async () => {
+exports.handler = async (event) => {
+  console.log('Teste iniciado');
+  
+  const githubToken = process.env.GITHUB_TOKEN;
+  const netlifyToken = process.env.NETLIFY_TOKEN;
+  const githubUser = process.env.GITHUB_USERNAME;
+  const templateRepo = process.env.FLOWPAGES_BROW;
+
   return {
     statusCode: 200,
-    body: JSON.stringify({ 
+    body: JSON.stringify({
       message: 'Função funcionando!',
-      env: {
-        githubToken: process.env.GITHUB_TOKEN ? 'ok' : 'missing',
-        netlifyToken: process.env.NETLIFY_TOKEN ? 'ok' : 'missing',
-        githubUser: process.env.GITHUB_USERNAME || 'missing',
-        templateRepo: process.env.FLOWPAGES_BROW || 'missing'
-      }
+      githubUser,
+      templateRepo,
+      hasGithubToken: !!githubToken,
+      hasNetlifyToken: !!netlifyToken
     })
   };
 };
